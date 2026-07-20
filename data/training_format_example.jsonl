@@ -1,0 +1,20 @@
+# Domain LLM POC — Training Dataset Format Reference
+# See: specs/001-domain-ai-poc/contracts/training-dataset.md
+#
+# Format rules (per line):
+#   - One valid JSON object per line (JSONL)
+#   - "messages" array with exactly TWO items:
+#       [0] {"role": "user",      "content": "<question or instruction>"}
+#       [1] {"role": "assistant", "content": "<expected domain answer>"}
+#   - Both "content" values must be non-empty strings
+#   - Do NOT include a "system" role — the notebook injects SYSTEM_PROMPT at inference time
+#   - Encoding: UTF-8, no BOM
+#   - Minimum 200 lines (excluding # comments), target 500–1,000
+#
+# Replace the three examples below with your actual domain Q&A pairs.
+# Delete these comment lines before running Stage 5 validation, or leave them —
+# the validation cell skips lines starting with "#".
+
+{"messages": [{"role": "user", "content": "What is [REPLACE: domain-specific question 1]?"}, {"role": "assistant", "content": "[REPLACE: detailed domain answer demonstrating expertise and using correct domain terminology]"}]}
+{"messages": [{"role": "user", "content": "How does [REPLACE: process or concept] work in [REPLACE: domain context]?"}, {"role": "assistant", "content": "[REPLACE: step-by-step explanation using domain-specific terms and referencing relevant procedures or standards]"}]}
+{"messages": [{"role": "user", "content": "What are the key requirements for [REPLACE: domain item, scenario, or regulation]?"}, {"role": "assistant", "content": "[REPLACE: list of specific requirements with domain-appropriate details, referencing applicable standards or internal policies as relevant]"}]}

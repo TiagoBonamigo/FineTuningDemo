@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+
+# Jupyter
+.ipynb_checkpoints/
+outputs/
+
+# Colab / Google Drive (never commit actual training data or model weights)
+training_dataset.jsonl
+domain_docs/
+lora_adapter/
+chroma_index/
+gguf_export/
+deps_cache/
+# NOTE: config.py is the shared source-of-truth module and MUST stay tracked.
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
