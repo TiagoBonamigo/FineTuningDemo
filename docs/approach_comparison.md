@@ -8,7 +8,11 @@
 > **Audience**: Business stakeholders and technical reviewers evaluating a *build vs. buy* /
 > *invest vs. iterate vs. stop* decision (see `docs/findings_template.md`, spec §SC-005).
 >
-> **Date**: 2026-07-20 · **Scope**: Qualitative, POC-level. No benchmark claims.
+> **This POC's domain**: laytime & voyage-charterparty calculation (NOR validity, SHEX/SHINC/WWD, SOF
+> analysis, demurrage/despatch) — see the repo `README.md`. The framework below is domain-agnostic;
+> §9 grounds it in the laytime specifics.
+>
+> **Date**: 2026-07-21 · **Scope**: Qualitative, POC-level. No benchmark claims.
 
 ---
 
@@ -114,7 +118,8 @@ neither is a calculator.**
 
 ### ② Fine-Tuned, No RAG
 
-*A LoRA adapter trained on domain Q&A pairs, but no document retrieval at query time.*
+*A LoRA adapter trained on domain Q&A pairs, but no document retrieval at query time. In this POC
+this is the "Specialized (No RAG)" panel.*
 
 **Pros**
 - Answers in the **domain's voice, format, and terminology** — behavior lives "in the weights."
@@ -139,7 +144,7 @@ latency- or offline-sensitive deployments.
 ### ③ Untuned + RAG
 
 *The stock model, but domain documents are chunked, embedded, and retrieved into the prompt at
-query time. In this POC this is the optional "Standard + Docs" panel.*
+query time. In this POC this is the "Standard + Docs" panel.*
 
 **Pros**
 - **Current and updatable** — change a document, re-index, done. No re-training.
@@ -165,7 +170,7 @@ matters; when you can't invest in authoring a training set.
 ### ④ Fine-Tuned + RAG (specialized)
 
 *Both levers: a domain LoRA adapter **and** document retrieval. In this POC this is the
-"Specialized Model" panel — the headline configuration.*
+"Specialized (RAG)" panel — the headline configuration.*
 
 **Pros**
 - **Best of both** — domain behavior/voice/format from fine-tuning + fresh, grounded, citeable
@@ -202,12 +207,13 @@ voice/format *and* current, auditable facts.
 | Update effort | — | 🔴 Retrain | 🟢 Re-index | 🟠 Re-index (facts) |
 | Reproducibility / debug | 🟢 Easy | 🟠 | 🟠 | 🔴 Hardest |
 | Regression risk (general ability) | 🟢 None | 🟠 Forgetting | 🟢 None | 🟠 Forgetting |
-| POC panel | Standard Model | *(not a default panel)* | Standard + Docs | **Specialized Model** |
+| POC panel | Standard Model | Specialized (No RAG) | Standard + Docs | **Specialized (RAG)** |
 
-> **Note on the POC**: three of the four cells are directly observable in the Gradio demo
-> (Standard, Standard + Docs, Specialized). The one cell *without* a default panel — **② fine-tuned
-> without RAG** — is exactly the isolation you'd add if you want to attribute how much of the
-> improvement comes from the adapter alone vs. from document access (spec §SC-005, FR-007).
+> **Note on the POC**: all four cells are directly observable in the Gradio demo (Standard, Standard
+> + Docs, Specialized (No RAG), Specialized (RAG)) — each with its own generation-time reading, so the
+> "Inference latency" row above isn't just theoretical. Comparing Standard vs. Specialized (No RAG)
+> isolates how much of the improvement comes from the adapter alone; comparing Specialized (No RAG)
+> vs. Specialized (RAG) isolates how much retrieval adds on top of it (spec §SC-005, FR-007).
 
 ---
 
@@ -350,15 +356,24 @@ tone/format*; the deterministic tool the moment a real number has to be correct.
 
 ## 9. How This Maps to This POC
 
-- The current spec compares **① Standard**, **③ Standard + Docs**, and **④ Specialized**
-  side-by-side in Gradio — three of the four cells, exactly enough to attribute improvement to
-  fine-tuning vs. RAG (spec §SC-005, `docs/findings_template.md`).
-- **② Fine-tuned without RAG** is the one cell without a default panel; add it as a fourth panel
-  only if the findings call for cleaner attribution of the adapter's contribution alone.
+- The demo now compares **all four cells** side-by-side in Gradio — **① Standard**, **② Specialized
+  (No RAG)**, **③ Standard + Docs**, and **④ Specialized (RAG)** — with a per-panel timing readout,
+  giving a clean, direct read on fine-tuning's contribution, RAG's contribution, and their combination
+  without needing to infer any of them (spec §SC-005, `docs/findings_template.md`).
+- The domain is **laytime & voyage-charterparty calculation** — NOR validity, SHEX/SHINC/WWD, SOF
+  analysis, demurrage/despatch (see `README.md`, `domain_docs/`, `training_dataset.jsonl`). This
+  happens to be a sharp illustration of the whole framework above: the terminology and analysis
+  *sequence* (e.g. the NOR → turn-time → laytime-commencement chain, or the step-by-step SOF
+  walk-through in `domain_docs/04_sof_analysis_guide.md`) is exactly what fine-tuning and RAG are good
+  at teaching; the *arithmetic* — demurrage/despatch amounts, elapsed laytime, prorated exceptions —
+  is exactly the exact-math ceiling in §6 that neither lever can fix.
 - The **deterministic calculation layer (§6–7) is beyond the current POC scope** — the POC is
-  scoped to qualitative Q&A comparison, not tool use. It is the most natural **"invest" next step**:
-  it is cheap (start as a plain Python function), stays within every constraint (free, local,
-  Colab-friendly, no Docker), and closes the one gap all four approaches share.
+  scoped to qualitative Q&A comparison, not tool use. It is the most natural **"invest" next step**,
+  and this domain gives it a concrete first target: a `calculate_laytime(...)` / `calculate_demurrage(...)`
+  function that takes the NOR time, turn time, exception clauses, and SOF intervals the LLM already
+  extracts, and returns an exact, auditable figure. It is cheap (start as a plain Python function),
+  stays within every constraint (free, local, Colab-friendly, no Docker), and closes the one gap all
+  four approaches share.
 - Constraints that still apply to any extension: open-weight models only, free/OSS libraries,
   Colab-runnable, and **Simplicity First** — which is why the recommended sequence is
   *function first, MCP later*.
@@ -377,6 +392,10 @@ tone/format*; the deterministic tool the moment a real number has to be correct.
   one app; MCP is the standard when many apps/agents must share the same trusted tools.
 - **"What does this cost?"** — The four approaches trade build/maintenance effort for quality
   (see §5). The calculation layer is comparatively cheap and removes an entire class of risk.
+- **"Why show 'Specialized (No RAG)' as its own panel instead of just 'Standard' and 'Specialized'?"**
+  — Without it, a visible gain in the fully-specialized panel is ambiguous: is it the adapter, the
+  retrieved documents, or both? The extra panel makes fine-tuning's standalone contribution directly
+  observable instead of inferred.
 
 ---
 

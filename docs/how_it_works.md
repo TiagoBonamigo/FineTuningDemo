@@ -8,14 +8,19 @@
 > **phase notebooks** sharing one `config.py`, handing off through Google Drive. The stage narrative
 > below is unchanged in logic — it is simply distributed across the notebooks:
 > `01_build_index.ipynb` (Stage 4 · RAG index) · `02_finetune.ipynb` (Stages 2 + 5 · base load +
-> fine-tune) · `03_compare_serve.ipynb` (Stages 6 + 7 · reload + three-panel demo) ·
+> fine-tune) · `03_compare_serve.ipynb` (Stages 6 + 7 · reload + four-panel demo) ·
 > `04_export_gguf.ipynb` (optional export). The original `notebook.ipynb` is retained until the split
 > is parity-validated. All constants referenced below now live in `config.py`.
 >
 > **Companion doc**: [`approach_comparison.md`](approach_comparison.md) argues *why* you'd combine
 > fine-tuning and RAG (pros/cons of each approach). This doc explains *how* this project does it.
 >
-> **Date**: 2026-07-20
+> **Domain**: this POC's documents and training pairs are laytime & voyage-charterparty calculation
+> (NOR validity, SHEX/SHINC/WWD, SOF analysis, demurrage/despatch) — see the repo `README.md` for the
+> full input list. The mechanics below are domain-agnostic; swap in different `domain_docs/` and
+> `training_dataset.jsonl` to repurpose the pipeline for any other domain.
+>
+> **Date**: 2026-07-21
 
 ---
 
@@ -24,14 +29,14 @@
 A general-purpose open-weight model doesn't know your organization's internal facts and doesn't
 speak in your domain's terminology. This project takes one small, free model and produces a **live,
 side-by-side comparison** that lets anyone see — in a browser — whether adapting that model to a
-domain actually improves its answers. It does this by running the *same question* through three
+domain actually improves its answers. It does this by running the *same question* through four
 variants of the same base model at once and showing the answers next to each other. Everything runs
 in a small set of Google Colab notebooks (one per pipeline phase, sharing one `config.py`), uses only
 free open-source software, and saves its work to Google Drive so it can be reproduced or resumed.
 
 ---
 
-## 2. The mental model: one base model, two levers, three panels
+## 2. The mental model: one base model, two levers, four panels
 
 There is **one base model** (Qwen). On top of it we can pull **two independent levers**:
 
@@ -40,30 +45,34 @@ There is **one base model** (Qwen). On top of it we can pull **two independent l
 | **Fine-tuning** (a LoRA adapter) | the model's *weights* | domain tone, terminology, answer style |
 | **RAG** (retrieval) | the model's *prompt* | fresh, grounded facts pulled from your documents at query time |
 
-Combining "adapter on/off" with "retrieval on/off" gives the three variants the demo shows
-side-by-side:
+Combining "adapter on/off" with "retrieval on/off" gives **all four** possible variants — the demo
+shows every one of them side-by-side:
 
-![Comparison architecture — inputs build the index and adapter; one base model powers three panels; a Gradio UI runs all three at once.](architecture.svg)
+![Comparison architecture — inputs build the index and adapter; one base model powers every panel; a Gradio UI runs all of them at once.](architecture.svg)
 
 | Panel | Base model | LoRA adapter | RAG retrieval | What it isolates |
 |---|:---:|:---:|:---:|---|
 | **Standard Model** | ✓ | ✗ | ✗ | the raw baseline |
 | **Standard + Docs** | ✓ | ✗ | ✓ | *RAG's* contribution alone |
-| **Specialized Model** | ✓ | ✓ | ✓ | the full combination |
+| **Specialized (No RAG)** | ✓ | ✓ | ✗ | *fine-tuning's* contribution alone |
+| **Specialized (RAG)** | ✓ | ✓ | ✓ | the full combination |
 
-Reading the three panels left-to-right is what makes the improvement **attributable**:
+Reading the panels is what makes the improvement **attributable**:
 
-- **Standard → Standard + Docs** shows how much *document retrieval* helped.
-- **Standard + Docs → Specialized** shows how much the *fine-tuned adapter* added on top.
-- **Standard → Specialized** shows the *combined* effect.
+- **Standard → Standard + Docs** shows how much *document retrieval* helped, on its own.
+- **Standard → Specialized (No RAG)** shows how much the *fine-tuned adapter* helped, on its own.
+- **Specialized (No RAG) → Specialized (RAG)** shows how much *retrieval adds on top of* the
+  fine-tuned adapter.
+- **Standard → Specialized (RAG)** shows the *combined* effect.
 
 That attribution feeds directly into the post-demo `findings_template.md` and the
 invest / iterate / stop recommendation.
 
-> These three panels correspond to approaches ①, ③, and ④ in
-> [`approach_comparison.md`](approach_comparison.md). (Approach ② — fine-tuned *without* RAG — is
-> not a default panel; it's the one you'd add if you wanted to isolate the adapter's effect even
-> more cleanly.)
+> These four panels correspond one-to-one with all four cells (①②③④) of the 2×2 matrix in
+> [`approach_comparison.md`](approach_comparison.md). Earlier, only three of the four cells were
+> shown by default and "fine-tuned without RAG" had to be added as an extra panel to get a clean
+> read on the adapter's standalone contribution — the demo now surfaces that cell (`Specialized (No
+> RAG)`) permanently, so all four configurations are directly comparable without any setup change.
 
 ---
 
@@ -104,16 +113,21 @@ risk-first, so a working demo exists at every step.
  Stage 5  Fine-Tuning ───────── validate JSONL → LoRA → train → save adapter
               │
  Stage 6  Full Pipeline Load ── reload base + attach adapter + reconnect index
-              │                  → define the 3 inference functions
- Stage 7  Demo UI ───────────── 3-panel Gradio with public share link  ◀── final demo
+              │                  → define the 4 inference functions
+ Stage 7  Demo UI ───────────── 4-panel Gradio with public share link  ◀── final demo
               │
  (opt.)   GGUF Export ───────── merge to a local-inference file
 ```
 
 ### Stage 0 — Install & Config
-Installs a **pinned** list of dependencies (Unsloth, PEFT, TRL, Transformers, sentence-transformers,
-ChromaDB, Gradio, …) so every run uses identical versions. To avoid re-downloading every time, it
-**caches built wheels to Drive** (`deps_cache/`): a later run on the same runtime installs *offline*
+Each phase notebook opens by cloning this repo (to fetch the shared `config.py`) and installing only
+**its own minimal, pinned dependency subset** — `01_build_index` needs embeddings/ChromaDB, `02_finetune`
+needs the training stack, `03_compare_serve` needs the full stack (base model, adapter, RAG, Gradio),
+`04_export_gguf` needs just the export tooling. Splitting the list this way avoids the dependency
+conflicts a single shared install would hit (e.g. `vllm` vs. the `transformers` version Qwen3.5 needs).
+To avoid re-downloading every time, each notebook **caches its own built wheels to Drive**
+(`deps_cache/`, keyed by Python/CUDA runtime *and* by a hash of that phase's dependency list, so the
+four notebooks never clobber each other's cache): a later run on the same runtime installs *offline*
 from that wheelhouse. It then:
 - defines every tunable value as a named constant (model ID, LoRA settings, chunk sizes, generation
   params, paths),
@@ -142,7 +156,8 @@ Turns your uploaded domain documents into a searchable index:
 chunk with all-MiniLM-L6-v2 → store vectors in a ChromaDB collection` that persists to Drive. It also
 defines `retrieve(query)`, which embeds a question, finds the **top-3** most similar chunks, and
 returns their text. If an index already exists on Drive, the stage offers to **skip and reuse it**
-rather than rebuild.
+rather than rebuild. Once built, it stamps a `meta.json` sidecar (embed model, chunk size/overlap) next
+to the index so a later stage can detect if the config has drifted since the index was built.
 
 ### Stage 5 — Fine-Tuning
 Turns your hand-authored Q&A file into a domain adapter:
@@ -152,26 +167,31 @@ Turns your hand-authored Q&A file into a domain adapter:
   projections),
 - formats each example with the model's chat template and trains with TRL's `SFTTrainer` for a few
   epochs,
-- **saves the adapter (~100 MB) to Drive** and backs up a copy of your dataset.
+- **saves the adapter (~100 MB) to Drive** and backs up a copy of your dataset, then stamps its own
+  `meta.json` sidecar (base model ID, LoRA settings, seed) alongside it.
 
 Like Stage 4, if an adapter already exists it offers to **skip and reuse** instead of retraining —
 so a re-run after a disconnect doesn't repeat the expensive step.
 
 ### Stage 6 — Full Pipeline Load
-Assembles the finished system. It reloads the base model **fresh**, attaches the saved LoRA adapter to
-produce the *specialized* model, reconnects the ChromaDB index, and defines the **three inference
-functions** — one per panel:
+Assembles the finished system. It first checks each artifact's `meta.json` sidecar against the current
+config and **fails fast with an actionable message** if either is missing or was built under different
+settings — so a stale index or adapter never gets loaded silently. It then reloads the base model
+**fresh**, attaches the saved LoRA adapter to produce the *specialized* model, reconnects the ChromaDB
+index, and defines the **four inference functions** — one per panel:
 
 | Function | Model used | Retrieval? | Powers panel |
 |---|---|:---:|---|
 | `infer_base` | base model | ✗ | Standard Model |
 | `infer_rag_only` | base model | ✓ | Standard + Docs |
-| `infer_specialized` | base **+ adapter** | ✓ | Specialized Model |
+| `infer_specialized_no_rag` | base **+ adapter** | ✗ | Specialized (No RAG) |
+| `infer_specialized` | base **+ adapter** | ✓ | Specialized (RAG) |
 
 ### Stage 7 — Demo UI
-Closes the skeleton UI and launches the **full three-panel Gradio app** with a public share link. One
-question box, one Submit button; on submit it runs all three functions and fills all three panels. It
-also snapshots the notebook to Drive. This is the deliverable stakeholders actually use.
+Launches the **full four-panel Gradio app** with a public share link. One question box, one Submit
+button; on submit it runs all four functions, fills all four panels, and shows a small **timings**
+readout with each panel's own generation wall-clock time (panels run sequentially on one GPU, so these
+are individual, not overlapping, times). This is the deliverable stakeholders actually use.
 
 ### (Optional) GGUF Export
 Merges the adapter into the base weights and exports a single 4-bit **GGUF** file for running the
@@ -181,28 +201,29 @@ specialized model locally (outside Colab). Skipped by default to save Drive spac
 
 ## 5. What happens when someone asks a question
 
-When a user types a question and clicks **Submit**, the same string is sent to all three inference
-functions. Here's the path for each:
+When a user types a question and clicks **Submit**, the same string is sent to all four inference
+functions, in sequence (one GPU, one model call at a time). Here's the path for each, using an actual
+demo question:
 
 ```
-                         "What is our return policy for Type-B units?"
+       "Under a WIBON clause, when does laytime commence if NOR is tendered at anchorage?"
                                           │
-        ┌─────────────────────────────────┼─────────────────────────────────┐
-        ▼                                 ▼                                 ▼
-   infer_base                        infer_rag_only                   infer_specialized
-        │                                 │                                 │
-        │                         retrieve(q): embed →                retrieve(q): embed →
-        │                         top-3 chunks from index             top-3 chunks from index
-        │                                 │                                 │
-        │                         prepend context to Q                prepend context to Q
-        │                         (RETRIEVAL_TEMPLATE)                (RETRIEVAL_TEMPLATE)
-        ▼                                 ▼                                 ▼
-   base model                        base model                    base model + LoRA adapter
-        │                                 │                                 │
-        └── same system prompt, same generation settings, thinking off ─────┘
-        ▼                                 ▼                                 ▼
-   Standard Model                   Standard + Docs                 Specialized Model
-   panel text                       panel text                      panel text
+      ┌───────────────┬──────────────────┼──────────────────────┬───────────────────────┐
+      ▼               ▼                  ▼                      ▼
+ infer_base     infer_rag_only    infer_specialized_no_rag   infer_specialized
+      │               │                  │                      │
+      │        retrieve(q): embed →      │               retrieve(q): embed →
+      │        top-3 chunks from index   │               top-3 chunks from index
+      │               │                  │                      │
+      │        prepend context to Q      │               prepend context to Q
+      │        (RETRIEVAL_TEMPLATE)      │               (RETRIEVAL_TEMPLATE)
+      ▼               ▼                  ▼                      ▼
+ base model      base model        base model + LoRA      base model + LoRA
+      │               │                  │                      │
+      └── same system prompt, same generation settings, thinking off ─────────────────┘
+      ▼               ▼                  ▼                      ▼
+  Standard      Standard + Docs   Specialized (No RAG)   Specialized (RAG)
+ panel text        panel text          panel text            panel text
 ```
 
 The two RAG panels wrap the question in a fixed template before generating:
@@ -214,10 +235,12 @@ Context:
 Question: <the user's question>
 ```
 
-The Standard panel gets the bare question. Every panel then generates with the *identical* system
+The two non-RAG panels get the bare question. Every panel then generates with the *identical* system
 prompt and settings — so any visible difference is caused only by the adapter and/or the retrieved
-context. If generation fails (e.g. the GPU runs out of memory), the panel shows a plain
-"⚠️ Generation failed — please retry." message instead of going blank.
+context. If generation fails (e.g. the GPU runs out of memory), the panel shows
+`⚠️ Generation error: <exception type>: <message>` instead of going blank, and the full traceback for
+every failed panel is written to a collapsible "Debug log" accordion below the panels — so a failure
+is diagnosable without opening the Colab console.
 
 ---
 
@@ -253,7 +276,9 @@ The notebook is the easy part. Two inputs are supplied by a person and are the r
 | **Training dataset** | A hand-authored `training_dataset.jsonl` of ≥ 200 `user`→`assistant` Q&A pairs | uploaded to `/content/training_dataset.jsonl` |
 
 A domain expert authors the Q&A pairs and picks the documents. That effort — not the technology — is
-what determines whether the demo is impressive.
+what determines whether the demo is impressive. This repo ships both inputs **pre-built** for the
+laytime domain (`domain_docs/`, `training_dataset.jsonl`) so the demo runs with no authoring step;
+swap in your own domain's files to repurpose the pipeline.
 
 ---
 
@@ -263,15 +288,15 @@ Everything persists under one Drive folder, `MyDrive/domain-llm-poc/`:
 
 ```
 domain-llm-poc/
-├── lora_adapter/            # the fine-tuned adapter (~100 MB)  ← Stage 5
-├── chroma_index/            # the ChromaDB vector index         ← Stage 4
-├── deps_cache/              # cached dependency wheels          ← Stage 0
-├── training_dataset.jsonl   # backup of your uploaded Q&A file  ← Stage 5
-└── notebook.ipynb           # snapshot of the notebook          ← Stage 7
+├── lora_adapter/             # fine-tuned adapter (~100 MB) + meta.json sidecar   ← Stage 5 (02_finetune.ipynb)
+├── chroma_index/             # ChromaDB vector index + meta.json sidecar          ← Stage 4 (01_build_index.ipynb)
+├── deps_cache/                # cached dependency wheels, one slot per notebook   ← Stage 0 (every notebook)
+├── training_dataset.jsonl     # backup of your training Q&A file                  ← Stage 5 (02_finetune.ipynb)
+└── gguf_export/                # optional merged GGUF file                        ← (opt.) 04_export_gguf.ipynb
 ```
 
 Because these live on Drive, a later run can **load them instead of rebuilding** — which is what makes
-the notebook resumable after a disconnect.
+the pipeline resumable after a disconnect, and lets any one phase notebook be re-run on its own.
 
 ---
 
@@ -279,12 +304,17 @@ the notebook resumable after a disconnect.
 
 The project is designed so *anyone* with a Google account can re-run it and get the same result:
 
-- **Pinned dependencies** + a **Drive-cached wheelhouse** → identical, fast installs across runs.
+- **Per-notebook pinned dependencies** + a **Drive-cached wheelhouse** (one cache slot per notebook,
+  keyed by runtime + dependency manifest) → identical, fast installs across runs, with no cross-phase
+  dependency conflicts.
 - **Fixed random seed** → deterministic training behavior where the framework allows.
 - **Everything saved to Drive** → a Colab disconnect never loses the adapter or index.
 - **Skip / rebuild prompts** on the expensive stages (RAG index, adapter) → a re-run reuses existing
   artifacts by default, or rebuilds on request. Set `UNATTENDED_DEFAULT` to answer automatically for
   hands-off runs.
+- **Artifact metadata sidecars** (`meta.json`) on the index and adapter → the compare/serve and export
+  notebooks fail fast with an actionable message if an artifact is missing or was built under a
+  different config, instead of silently loading something incompatible.
 - **Automatic T4 fallback** → the same notebook runs on a weaker GPU by swapping to a smaller model
   and lighter training config, with no manual edits.
 
@@ -295,11 +325,11 @@ The project is designed so *anyone* with a Google account can re-run it and get 
 The POC is considered successful when:
 
 1. A single shared Gradio link answers the same question in all panels side-by-side.
-2. The notebook runs end-to-end on a fresh Colab session with no manual steps beyond uploading the two
-   inputs.
-3. On the curated demo questions, the Specialized panel is visibly better than the Standard panel for
-   the domain questions — while the general "sanity-check" questions stay good in both (proving the
-   fine-tuning didn't damage general ability).
+2. The pipeline runs end-to-end on a fresh Colab session (four notebooks, in order) with no manual
+   steps beyond uploading the two inputs — or none at all, using the laytime inputs already in this repo.
+3. On the curated demo questions, the Specialized (RAG) panel is visibly better than the Standard panel
+   for the domain questions — while the general "sanity-check" questions stay good across all panels
+   (proving the fine-tuning didn't damage general ability).
 4. All artifacts sit in one Drive folder, and a one-page `findings_template.md` records what improved,
    what didn't, and the invest / iterate / stop call.
 
@@ -309,8 +339,9 @@ The POC is considered successful when:
 
 Nearly every design decision above traces back to four project principles:
 
-- **Simplicity First** → one notebook, in-process ChromaDB (no server), Gradio only, no orchestration
-  frameworks. A reviewer can read the whole thing in under an hour.
+- **Simplicity First** → one notebook, or the bounded four-phase split used today, sharing one
+  `config.py` and handing off only through Drive artifacts; in-process ChromaDB (no server), Gradio
+  only, no orchestration frameworks. A reviewer can read the whole thing in under an hour.
 - **Cost Mandate** → only open-weight models and free OSS libraries; the sole paid resource is the
   existing Colab Pro+ subscription. No paid APIs anywhere.
 - **Reproducibility** → pinned deps, fixed seeds, Drive persistence, and a mandatory T4-compatible
