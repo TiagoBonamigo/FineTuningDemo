@@ -32,7 +32,7 @@ import subprocess
 SEED = 42
 
 # ── Model / sequence (A100 defaults; `select_profile` swaps to the T4 set) ───
-MODEL_ID    = "unsloth/Qwen3.5-9B"
+MODEL_ID    = "unsloth/Qwen3.5-0.8B"
 MAX_SEQ_LEN = 2048
 
 # ── LoRA ─────────────────────────────────────────────────────────────────────
