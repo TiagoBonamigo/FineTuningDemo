@@ -20,14 +20,14 @@ are declared here; downstream cells reference them by name.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `MODEL_ID` | str | `"unsloth/Qwen3.5-9B"` | HuggingFace model ID (T4 fallback: `"Qwen/Qwen3-4B-Instruct-2507"`) |
+| `MODEL_ID` | str | `"unsloth/Qwen3.5-0.8B"` | HuggingFace model ID (T4 fallback: `"Qwen/Qwen3-4B-Instruct-2507"`) |
 | `SEED` | int | `42` | Global random seed (NumPy, PyTorch, Transformers) |
 | `MAX_SEQ_LEN` | int | `2048` | Training + inference sequence length (T4 fallback: `512`) |
 | `LORA_R` | int | `32` | LoRA rank (T4 fallback: `8`) |
 | `LORA_ALPHA` | int | `32` | LoRA alpha (= rank for scaling factor 1.0; T4 fallback: `8`) |
 | `LORA_DROPOUT` | float | `0.05` | LoRA dropout rate |
 | `LORA_TARGETS` | list[str] | `["q_proj","k_proj","v_proj","o_proj"]` | Modules to adapt (T4 fallback: `["q_proj","v_proj"]`) |
-| `TRAIN_EPOCHS` | int | `3` | Training epochs (T4 fallback: `2`) |
+| `TRAIN_EPOCHS` | int | `14` | Training epochs (T4 fallback: `2`) |
 | `TRAIN_BATCH` | int | `4` | Per-device batch size (T4 fallback: `1`) |
 | `GRAD_ACCUM` | int | `2` | Gradient accumulation steps (T4 fallback: `8`) |
 | `LEARNING_RATE` | float | `2e-4` | AdamW learning rate |

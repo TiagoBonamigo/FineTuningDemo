@@ -51,7 +51,7 @@ This repo ships both, pre-built for the laytime domain — run the demo with no 
 
 | Base model | Quantization | LoRA | Chunking | Retrieval | Generation |
 |---|---|---|---|---|---|
-| Qwen3.5-9B (A100) / Qwen3-4B (T4) | 4-bit NF4 | r=32, α=32, q/k/v/o | 2000 chars / 200 overlap | top-3, cosine | temp 0.1, top-p 0.9, 512 tok, thinking off |
+| Qwen3.5-0.8B (A100) / Qwen3-4B (T4) | 4-bit NF4 | r=32, α=32, q/k/v/o | 2000 chars / 200 overlap | top-3, cosine | temp 0.1, top-p 0.9, 512 tok, thinking off |
 
 ---
 

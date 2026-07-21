@@ -124,7 +124,7 @@ Full narrative: [`docs/how_it_works.md`](docs/how_it_works.md).
 
 | Base model | Quantization | LoRA | Chunking | Retrieval | Generation |
 |---|---|---|---|---|---|
-| Qwen3.5-9B (A100) / Qwen3-4B (T4 fallback) | 4-bit NF4 | r=32, α=32, targets q/k/v/o | 2000 chars / 200 overlap | top-3, cosine | temp 0.1, top-p 0.9, 512 tokens, thinking off |
+| Qwen3.5-0.8B (A100) / Qwen3-4B (T4 fallback) | 4-bit NF4 | r=32, α=32, targets q/k/v/o | 2000 chars / 200 overlap | top-3, cosine | temp 0.1, top-p 0.9, 512 tokens, thinking off |
 
 All values live in the shared **`config.py`** and are documented in
 [`specs/001-domain-ai-poc/data-model.md`](specs/001-domain-ai-poc/data-model.md). Each
