@@ -11,9 +11,7 @@ dist/
 .ipynb_checkpoints/
 outputs/
 
-# Colab / Google Drive (never commit actual training data or model weights)
-training_dataset.jsonl
-domain_docs/
+# Colab / Google Drive (never commit actual model weights)
 lora_adapter/
 chroma_index/
 gguf_export/
