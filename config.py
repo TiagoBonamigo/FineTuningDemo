@@ -42,7 +42,10 @@ LORA_DROPOUT = 0.05
 LORA_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj"]
 
 # ── Training ─────────────────────────────────────────────────────────────────
-TRAIN_EPOCHS  = 3
+# TRAIN_EPOCHS=14 -> ~602 steps on the current training_dataset.jsonl (343 valid pairs,
+# steps/epoch = ceil(ceil(343/TRAIN_BATCH)/GRAD_ACCUM) = 43); closest integer-epoch count to 600.
+# Steps/epoch shifts if the dataset size changes -- recompute if you add/remove pairs.
+TRAIN_EPOCHS  = 14
 TRAIN_BATCH   = 4
 GRAD_ACCUM    = 2
 LEARNING_RATE = 2e-4
