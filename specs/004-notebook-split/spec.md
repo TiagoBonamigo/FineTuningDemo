@@ -66,7 +66,7 @@ only `training_dataset.jsonl` present.
 
 ### User Story 2 - Reuse existing artifacts to launch the demo without rebuilding (Priority: P2)
 
-A team member who already has a trained adapter and a built index wants the three-panel comparison
+A team member who already has a trained adapter and a built index wants the four-panel comparison
 demo. They open only the compare/serve notebook, which reloads both artifacts from Drive and serves
 the Gradio UI — no retraining, no reindexing.
 
@@ -74,16 +74,16 @@ the Gradio UI — no retraining, no reindexing.
 action (demoing). It depends on P1's artifacts existing but is independently valuable and testable.
 
 **Independent Test**: With `lora_adapter/` and `chroma_index/` already on Drive, run only the
-compare/serve notebook. Verify all three panels (Standard / Standard+Docs / Specialized) load and
-answer a demo question, with no training or embedding-build step executed.
+compare/serve notebook. Verify all four panels (Standard / Standard+Docs / Specialized (No RAG) /
+Specialized (RAG)) load and answer a demo question, with no training or embedding-build step executed.
 
 **Acceptance Scenarios**:
 
 1. **Given** `lora_adapter/` and `chroma_index/` present on Drive, **When** the compare/serve
-   notebook is run, **Then** a single Gradio link serves all three panels answering the same
+   notebook is run, **Then** a single Gradio link serves all four panels answering the same
    question side by side, and no training or index-build runs.
 2. **Given** the compare/serve notebook, **When** a shared parameter (e.g. temperature) is inspected
-   across the three panels, **Then** all three use the identical value sourced from the shared config
+   across all panels, **Then** all four use the identical value sourced from the shared config
    module.
 
 ---
@@ -98,7 +98,7 @@ single-notebook result.
 Done). It is the integration of P1 and P2; valuable but exercised less often than either alone.
 
 **Independent Test**: Starting from an empty Drive artifact folder (only raw `domain_docs/` and
-`training_dataset.jsonl` supplied), run the three notebooks in order and confirm the final three-panel
+`training_dataset.jsonl` supplied), run the three notebooks in order and confirm the final four-panel
 demo behaves equivalently to the pre-split single notebook on the demo question set.
 
 **Acceptance Scenarios**:
@@ -146,17 +146,20 @@ demo behaves equivalently to the pre-split single notebook on the demo question 
 - **FR-004**: Each notebook MUST pin, in its first cell, only the minimal dependency subset its phase
   requires (build-index: embeddings + vector store + splitter; fine-tune: training stack;
   compare/serve: full stack; export: export tooling).
-- **FR-005**: The compare/serve notebook MUST contain all three inference panels (Standard /
-  Standard+Docs / Specialized) and MUST source every fair-comparison parameter (base model,
-  quantization, generation params, system prompt) from the shared config module (§IV).
+- **FR-005**: The compare/serve notebook MUST contain all four inference panels (Standard /
+  Standard+Docs / Specialized (No RAG) / Specialized (RAG)) and MUST source every fair-comparison
+  parameter (base model, quantization, generation params, system prompt) from the shared config
+  module (§IV).
 - **FR-006**: Each notebook MUST run top-to-bottom on a fresh Colab session with no manual
   intervention beyond supplying the raw inputs its own phase consumes.
 - **FR-007**: When a required input artifact is missing, a notebook MUST halt with a clear, actionable
   message identifying which prior phase to run, and MUST NOT proceed on empty or incorrect data.
 - **FR-008**: Running the notebooks in order (build-index → fine-tune → compare/serve) MUST preserve
-  the **qualitative** three-panel behavior of the baseline pipeline on the demo question set — the
-  cross-panel quality ordering (Specialized ≥ Standard+Docs ≥ Standard) and the factual grounding of
-  the RAG/specialized answers in the domain docs. Token-level output equality is NOT required and NOT
+  the **qualitative** panel behavior of the baseline pipeline on the demo question set — the
+  cross-panel quality ordering (Specialized (RAG) ≥ Standard+Docs ≥ Standard, and Specialized (RAG) ≥
+  Specialized (No RAG) ≥ Standard; Standard+Docs and Specialized (No RAG) are not ordered against each
+  other, since each isolates a different lever) and the factual grounding of the RAG/specialized
+  answers in the domain docs. Token-level output equality is NOT required and NOT
   expected, because decoding is sampled and the split intentionally moves to transformers v5. The
   **baseline** is the pre-split notebook run on a configuration it can actually execute (the
   T4-fallback model if the primary model's monolith pins do not resolve); if no runnable monolith
@@ -194,14 +197,14 @@ demo behaves equivalently to the pre-split single notebook on the demo question 
 
 - **SC-001**: The RAG index can be produced by running only the build-index notebook, whose
   environment installs none of the fine-tuning or UI dependencies.
-- **SC-002**: A person holding an existing adapter and index can launch the full three-panel demo by
+- **SC-002**: A person holding an existing adapter and index can launch the full four-panel demo by
   running only the compare/serve notebook, with zero retraining or reindexing steps executed.
 - **SC-003**: Full reproduction requires running exactly three notebooks in order (four with the
   optional export), each top-to-bottom, with no manual step beyond supplying the raw inputs.
 - **SC-004**: For the 5–10 question demo set, the split pipeline preserves the cross-panel quality
-  ordering (Specialized ≥ Standard+Docs ≥ Standard) and factual grounding shown by the baseline,
-  judged qualitatively side by side. Token-identical output is not required (sampled decoding +
-  transformers v5).
+  ordering (Specialized (RAG) ≥ Standard+Docs ≥ Standard, and Specialized (RAG) ≥ Specialized (No
+  RAG) ≥ Standard) and factual grounding shown by the baseline, judged qualitatively side by side.
+  Token-identical output is not required (sampled decoding + transformers v5).
 - **SC-005**: Changing any shared constant requires editing exactly one location and takes effect in
   every notebook on its next run.
 - **SC-006**: The build-index and fine-tune notebooks each resolve their pinned dependencies with no

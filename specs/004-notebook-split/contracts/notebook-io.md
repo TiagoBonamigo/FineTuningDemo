@@ -28,15 +28,17 @@ uniform cell-1 bootstrap (fetch repo → `import config` → `mount_drive` → d
 ## `03_compare_serve.ipynb` (the only full-stack notebook)
 
 - **Consumes**: `lora_adapter/` (+ verify `meta.json`), `chroma_index/` (+ verify `meta.json`).
-- **Produces**: an ephemeral Gradio share link (three panels).
+- **Produces**: an ephemeral Gradio share link (four panels: Standard / Standard+Docs / Specialized
+  (No RAG) / Specialized (RAG)), plus a per-panel generation-timing readout.
 - **PINNED_REQS**: `unsloth`, `unsloth_zoo`, `transformers>=5.2`, `peft>=0.14`, `bitsandbytes>=0.45`,
   `sentence-transformers>=5.2`, `chromadb>=1.0`, `gradio>=5`, `pillow>=10.4,<12`. **No `trl`/`datasets`
   (inference only); vLLM MUST be absent** (uninstall if pulled — it caps `transformers<5`).
 - **Profile**: `config.select_profile(vram)` — MUST resolve to the SAME base as the adapter's sidecar.
 - **Verify (fail-fast, FR-007/FR-013)**: adapter `meta.base_model_id == config.MODEL_ID` (active
   profile) and `chroma meta.embed_model == config.EMBED_MODEL`; missing artifact → "run phase N first".
-- **§IV invariant**: `infer_base`, `infer_rag_only`, `infer_specialized` share base model,
-  quantization, `SYSTEM_PROMPT`, and all generation params — every value read from `config`.
+- **§IV invariant**: `infer_base`, `infer_rag_only`, `infer_specialized_no_rag`, `infer_specialized`
+  share base model, quantization, `SYSTEM_PROMPT`, and all generation params — every value read from
+  `config`.
 
 ## `04_export_gguf.ipynb` (optional)
 

@@ -94,10 +94,10 @@ no pip conflict (quickstart Scenarios A & B; SC-001, SC-006).
 
 ## Phase 4: User Story 2 — Reuse existing artifacts to launch the demo (P2)
 
-**Goal**: The serve notebook rebuilds the three-panel demo from Drive artifacts alone.
+**Goal**: The serve notebook rebuilds the four-panel demo from Drive artifacts alone.
 
 **Independent Test**: With `chroma_index/` + `lora_adapter/` present, `03_compare_serve.ipynb` serves
-a 3-panel Gradio link with no retrain/reindex; missing or drifted artifacts fail fast (quickstart
+a 4-panel Gradio link with no retrain/reindex; missing or drifted artifacts fail fast (quickstart
 Scenarios C, E, F; SC-002, SC-007).
 
 - [X] T013 [US2] Create `03_compare_serve.ipynb` — cell-1 bootstrap with the full-stack corrected pins
@@ -105,11 +105,12 @@ Scenarios C, E, F; SC-002, SC-007).
       chromadb>=1.0, gradio>=5, pillow>=10.4,<12]` + a vLLM-exclusion guard (uninstall if pulled);
       `config.select_profile(vram)`; `config.verify_meta(lora_adapter, {base_model_id: config.MODEL_ID})`
       and `config.verify_meta(chroma_index, {embed_model: config.EMBED_MODEL})` before load; port Stage 6
-      (reload base + attach adapter + reconnect Chroma/embedder) + Stage 7 (3-panel Gradio); every
+      (reload base + attach adapter + reconnect Chroma/embedder) + Stage 7 (4-panel Gradio: Standard /
+      Standard+Docs / Specialized (No RAG) / Specialized (RAG), plus per-panel timings); every
       generation param and prompt read from `config` (§IV / FR-005); add `## Deviations` note.
 - [ ] T014 [US2] Validate per quickstart Scenarios C (reuse, no rebuild), E (missing `lora_adapter/`
       halts with "run 02_finetune first"), F (base-model drift halts via `verify_meta`); confirm
-      `vllm` absent and the three panels share identical generation params.
+      `vllm` absent and all four panels share identical generation params.
 
 **Checkpoint**: Demo launches from artifacts only; fail-fast paths verified.
 
@@ -119,18 +120,19 @@ Scenarios C, E, F; SC-002, SC-007).
 
 **Goal**: Running the phases in sequence reproduces the monolith with no regression.
 
-**Independent Test**: From empty artifacts, run 01 → 02 → 03; the 3-panel output matches
+**Independent Test**: From empty artifacts, run 01 → 02 → 03; the 4-panel output matches
 `notebook.ipynb` on the demo question set (quickstart Scenario D; FR-008, SC-004).
 
 - [ ] T015 [US3] Run `01_build_index.ipynb` → `02_finetune.ipynb` → `03_compare_serve.ipynb` in order
-      on a fresh Drive (per quickstart Scenario D); capture the three-panel output for the
+      on a fresh Drive (per quickstart Scenario D); capture the four-panel output for the
       `data/demo_questions.md` set.
 - [ ] T016 [US3] Qualitative parity check on `data/demo_questions.md`: establish the baseline by
       running the retained `notebook.ipynb` on a config it can execute (the T4-fallback model if the
       primary pins don't resolve; else use the first validated split run as reference), then confirm
-      the split preserves the cross-panel quality ordering (Specialized ≥ Standard+Docs ≥ Standard)
-      and factual grounding (FR-008/SC-004). Token-identical output is not expected; record and
-      resolve any *qualitative* regression before proceeding.
+      the split preserves the cross-panel quality ordering (Specialized (RAG) ≥ Standard+Docs ≥
+      Standard, and Specialized (RAG) ≥ Specialized (No RAG) ≥ Standard) and factual grounding
+      (FR-008/SC-004). Token-identical output is not expected; record and resolve any *qualitative*
+      regression before proceeding.
 
 **Checkpoint**: End-to-end reproduction confirmed equivalent to the monolith.
 
@@ -179,7 +181,7 @@ Scenarios C, E, F; SC-002, SC-007).
 
 - **MVP = Phase 1 + 2 + US1** (T001–T012): `config.py` plus the two build notebooks proves the whole
   premise — modularity/reuse and dependency-conflict isolation — before any serving work.
-- **Increment 2 = US2** (T013–T014): the reusable three-panel demo.
+- **Increment 2 = US2** (T013–T014): the reusable four-panel demo.
 - **Increment 3 = US3** (T015–T016): end-to-end parity, unlocking monolith removal.
 - **Finish = Polish** (T017–T021): optional export, doc sync, retire `notebook.ipynb`, regression sweep.
 - Retire the monolith (T019) **only** after parity (T016); keep it as the reference until then.

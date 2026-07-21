@@ -27,15 +27,15 @@ criteria. Run notebooks from a fresh runtime unless stated. See contracts/ for t
 
 1. Fresh runtime, with `chroma_index/` and `lora_adapter/` already on Drive. Open
    `03_compare_serve.ipynb`, Run all.
-2. Expect: no training or index build runs; a Gradio share link with three panels (Standard /
-   Standard+Docs / Specialized) answering the same question side by side.
-3. **Verify §IV**: the three panels use identical generation params (all sourced from `config`);
+2. Expect: no training or index build runs; a Gradio share link with four panels (Standard /
+   Standard+Docs / Specialized (No RAG) / Specialized (RAG)) answering the same question side by side.
+3. **Verify §IV**: all four panels use identical generation params (all sourced from `config`);
    `vllm` is not installed.
 
 ## Scenario D — Full reproduction in order (US3, SC-003/SC-004)
 
 1. From empty artifacts: run A → B → C in sequence (fresh runtime each).
-2. Expect: the three-panel demo matches `notebook.ipynb`'s output on the demo question set (parity
+2. Expect: the four-panel demo matches `notebook.ipynb`'s output on the demo question set (parity
    check against the retained monolith) — no functional regression (FR-008).
 
 ## Scenario E — Missing upstream artifact fails fast (US1-AS3, FR-007)
@@ -53,7 +53,7 @@ criteria. Run notebooks from a fresh runtime unless stated. See contracts/ for t
 ## Scenario G — Single source of truth (FR-011, SC-005)
 
 1. Change one shared constant in `config.py` (e.g. `TEMPERATURE`).
-2. Re-run `03_compare_serve.ipynb`. Expect: all three panels reflect the new value; the value exists
+2. Re-run `03_compare_serve.ipynb`. Expect: all four panels reflect the new value; the value exists
    in exactly one place (grep the notebooks — no re-declared `TEMPERATURE`).
 
 ## Scenario H — Per-phase wheelhouse, no collision (FR-009, D6)

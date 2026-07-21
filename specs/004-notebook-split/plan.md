@@ -11,7 +11,7 @@ Decompose the monolithic `notebook.ipynb` (Stages 0–7 + optional GGUF export) 
 
 - `01_build_index.ipynb` — chunk + embed `domain_docs/`, build the vector store → `chroma_index/`.
 - `02_finetune.ipynb` — load the base model, QLoRA-train → `lora_adapter/`.
-- `03_compare_serve.ipynb` — reload base + adapter + RAG, serve the three-panel Gradio demo.
+- `03_compare_serve.ipynb` — reload base + adapter + RAG, serve the four-panel Gradio demo.
 - `04_export_gguf.ipynb` *(optional)* — merge + export → `gguf_export/`.
 
 Phases hand off **only through Drive artifacts** (no shared in-memory state), and every shared
@@ -26,7 +26,7 @@ clobber each other's cache.
 
 This feature is **structural**: `03_compare_serve.ipynb` still co-locates the full stack, and it
 adopts the corrected pin set (transformers≥5.2, sentence-transformers≥5.2, chromadb≥1.0, gradio≥5,
-pillow<12, no vLLM) so all three panels load together; validating that resolution is a prerequisite
+pillow<12, no vLLM) so all four panels load together; validating that resolution is a prerequisite
 for SC-004 but the pins themselves are recorded here as each notebook's `PINNED_REQS`.
 
 ## Technical Context
@@ -60,7 +60,7 @@ conflict risk for the two build notebooks (SC-006). Warm wheelhouse still instal
 
 **Constraints**: ≤4 notebooks + exactly one shared module (§I); Drive-artifact-only handoff (FR-002);
 no shared constant re-declared per notebook (FR-011); no new helper scripts or cross-notebook imports
-beyond `config.py` (FR-012); T4 default must still fit 16 GB (FR-010, §III); all three panels + shared
+beyond `config.py` (FR-012); T4 default must still fit 16 GB (FR-010, §III); all four panels + shared
 params in the serve notebook (FR-005, §IV).
 
 **Scale/Scope**: One POC pipeline, four notebooks, one shared module. Multi-GB per-phase wheelhouses
@@ -77,9 +77,9 @@ are expected; housekeeping of stale cache slots is out of scope (as in Feature 0
 | §II Cost Mandate | No new libraries, no paid service; same OSS stack re-partitioned | ✅ Pass |
 | §III Reproducibility | Each notebook pins its own minimal subset in cell 1; Features 002/003 preserved per-notebook; `config.py` version-controlled | ⚠️ Pass (wheelhouse re-keyed per manifest — see Complexity Tracking) |
 | §III T4 degradability | `config.select_profile()` applies the T4 swap in each model-loading notebook; default fits 16 GB | ✅ Pass |
-| §IV Fair Comparison | All three panels live only in `03_compare_serve.ipynb`; every shared param imported from `config.py`, never re-declared (FR-005/FR-011) | ✅ Pass (drift-proofed) |
+| §IV Fair Comparison | All four panels live only in `03_compare_serve.ipynb`; every shared param imported from `config.py`, never re-declared (FR-005/FR-011) | ✅ Pass (drift-proofed) |
 | Model / Fine-tuning / RAG stack | Same models and stack; only the environment is partitioned per phase | ✅ Pass |
-| Interface | Gradio three-panel UI unchanged, moved wholesale to the serve notebook | ✅ Pass |
+| Interface | Gradio four-panel UI (Standard / Standard+Docs / Specialized (No RAG) / Specialized (RAG)), moved wholesale to the serve notebook | ✅ Pass |
 | Prohibited list | No paid APIs, Docker, K8s, hosted DB, or React/Vue; vLLM explicitly excluded from serve | ✅ Pass |
 | §Governance (Build Order / Deviations) | Phase-notebook layout supersedes the single-notebook risk-first stage order → MUST be recorded in a Deviations note in each notebook | ⚠️ Requires Deviations note |
 
@@ -147,7 +147,7 @@ After Phase 1 design (see research.md, data-model.md, contracts/, quickstart.md)
 | One shared module | `config.py` is the sole cross-notebook import; constants never re-declared per notebook (contract: config-module.md) | §I, FR-003/FR-011 ✅ |
 | Handoff | Only `chroma_index/`, `lora_adapter/`, `training_dataset.jsonl`, `gguf_export/` cross phases; no in-memory sharing | FR-002 ✅ |
 | Minimal deps | Four distinct `PINNED_REQS` lists (notebook-io.md); build notebooks exclude the other stack | §III, FR-004, SC-006 ✅ |
-| Fair comparison | All three panels + all generation params sourced from `config` in the serve notebook only | §IV, FR-005 ✅ |
+| Fair comparison | All four panels + all generation params sourced from `config` in the serve notebook only | §IV, FR-005 ✅ |
 | Drift safety | `meta.json` sidecar written at build, verified at consume; fail-fast on mismatch/missing | FR-007/FR-013, SC-007 ✅ |
 | Reproducibility | 002 gate + 003 wheelhouse preserved via `config` helpers; wheelhouse partitioned per manifest | §III, FR-009 ✅ |
 | T4 degradability | `config.select_profile(vram)` applied in fine-tune + serve + export notebooks | §III, FR-010 ✅ |

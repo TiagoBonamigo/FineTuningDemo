@@ -82,5 +82,5 @@ Notebook start
   → For each producible artifact (build notebooks):
         artifact_gate(...) ── skip ──▶ reuse Drive artifact       # Feature 002
                             └ rebuild ▶ build, then write_meta()  # FR-013
-  → Serve notebook: load base+adapter+RAG, launch 3-panel Gradio  # §IV, all params from config
+  → Serve notebook: load base+adapter+RAG, launch 4-panel Gradio  # §IV, all params from config
 ```

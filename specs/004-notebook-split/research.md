@@ -144,7 +144,7 @@ SC-004). Keep it indefinitely (rejected: two sources of truth, contradicts the s
 
 - **Private-repo clone in Colab** needs a token; documented with a raw-download fallback (D2).
 - **Serve-notebook conflict resolution** is assumed solved by the D7 pins but its end-to-end
-  validation (all three panels load together) is the SC-004 prerequisite tracked in the spec's
+  validation (all four panels load together) is the SC-004 prerequisite tracked in the spec's
   Assumptions — this feature records the pins; the install must be confirmed on a real A100 runtime.
 - **First-run cost**: partitioned wheelhouses mean each phase builds its own slot once (cold), so the
   very first run of all four notebooks builds up to four caches; warm runs are offline thereafter.
