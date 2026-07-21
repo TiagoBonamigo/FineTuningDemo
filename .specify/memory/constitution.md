@@ -1,26 +1,72 @@
 <!--
 ## Sync Impact Report
 
-- Version change: 1.1.0 → 1.2.0
-- Bump type: MINOR (expanded guidance — permits optional notebook decomposition; no principle removed).
-- Modified principles: I. Simplicity First (rationale softened, decomposition clause added);
-  IV. Fair Comparison (added split-safety clause: all panels + shared params in the serve notebook).
-- Added sections: Technology Constraints → "Notebook Decomposition (optional)".
-- Clarified: III. Reproducibility (per-notebook minimal dependency pinning affirmed);
-  Quality & Delivery Standards → Definition of Done (generalized "the notebook" → multi-notebook layout).
-- Unchanged: II. Cost Mandate; III. T4-degradability requirement.
-- Templates reviewed: plan-template.md ✅ (generic Constitution Check gate, no hard-coded principle text),
-  spec-template.md ✅, tasks-template.md ✅, checklist-template.md ✅. No edits required.
-- Skills reviewed: .claude/skills/speckit-* ✅ (generic guidance, no stale references).
-- ⚠ Pending manual sync (runtime guidance docs, outside this file):
-  - `CLAUDE.md` — "Keep it a single notebook" and "no local module imports and no helper scripts"
-    must be reconciled with the optional decomposition + single shared config module.
-  - `README.md`, `docs/how_it_works.md` — "one notebook" framing to be updated if a split is adopted.
-- Deferred TODOs: none.
+- Version change: 1.2.0 → 1.3.0
+- Bump type: MINOR (expanded model guidance + generalized panel-count language to match the shipped
+  four-panel demo; no principle removed or redefined).
+- Modified principles: none removed/redefined.
+  - §Technology Constraints → "Model Requirements" expanded (lowered default-size floor, added
+    Qwen3.5-0.8B as an approved lightweight/fast-iteration candidate, added explicit rule that a
+    larger GPU runtime does not obligate a larger model).
+  - §IV Fair Comparison: generalized "all three inference panels (Standard / Standard+Docs /
+    Specialized)" → "all inference panels (Standard / Standard+Docs / Specialized (No RAG) /
+    Specialized (RAG))" to match the compare/serve notebook now shipping four panels.
+  - §Technology Constraints → "Interface": generalized the two/three-panel layout language to an
+    N-panel layout with a stated minimum (Standard + Specialized (RAG)) and two encouraged
+    attribution panels (Standard+Docs, Specialized (No RAG)).
+  - §Technology Constraints → "Notebook Decomposition": "all three panels" → "every panel it serves".
+- Added sections: none.
+- Clarified: "Model Requirements" now explicitly permits assigning any approved candidate to any
+  GPU profile in `config.py` — the A100 profile is not required to use the largest approved model.
+- Unchanged: I. Simplicity First; II. Cost Mandate; III. Reproducibility (incl. T4-degradability);
+  IV. Fair Comparison's substantive rule (same base/quant/params/prompt, adapter+context are the
+  only allowed deltas); all other Technology Constraints subsections.
+- Templates reviewed: plan-template.md ✅, spec-template.md ✅, tasks-template.md ✅,
+  checklist-template.md ✅ (grepped for "Qwen"/model-size/"panel" references — none found; gates
+  are generic). No edits required.
+- Skills reviewed: .claude/skills/speckit-* ✅ (grepped for model/size/panel references — none found).
+- ⚠ Pending manual sync (runtime guidance + spec docs, outside this file — config.py and
+  03_compare_serve.ipynb are already the source of truth):
+  - `README.md` (Configuration defaults table), `docs/quick_reference.md` (Defaults at a glance
+    table), `specs/001-domain-ai-poc/data-model.md` (`MODEL_ID` default value) — all still show
+    `Qwen3.5-9B` as the A100 default; update to `Qwen3.5-0.8B` to match `config.py`.
+  - `specs/004-notebook-split/` (spec.md/plan.md/tasks.md, wherever they describe the compare/serve
+    notebook's panels) — likely still say "three panels"; reconcile with the shipped fourth panel
+    (`infer_specialized_no_rag` / "Specialized (No RAG)").
+- Deferred TODOs:
+  - Observation (not blocking): `config.py`'s T4 fallback pins `unsloth/Qwen3-4B-bnb-4bit`, which
+    is a different exact checkpoint/quantization build than this constitution's preferred T4-safe
+    candidate `Qwen3-4B-Instruct-2507`. Pre-existing, not introduced by this amendment — worth a
+    human check on whether it should be reconciled to the named preferred candidate.
 
 ---
 
 ## Amendment Log
+
+### v1.3.0 — 2026-07-21
+
+- **§Model Requirements**: Lowered the default base model size floor from 1B to **0.5B** parameters
+  to admit Qwen3.5-0.8B; added it to the T4-safe/lightweight candidate list as the lightest,
+  fast-iteration option; added an explicit rule that a larger GPU runtime (A100/L4) does not
+  obligate a larger model — any approved candidate MAY be assigned to any profile in `config.py`.
+- **§IV Fair Comparison**, **§Interface**, **§Notebook Decomposition**: generalized every reference
+  to a fixed panel count ("both variants", "all three panels", "an optional third panel") to hold
+  for however many panels are actually configured, and named all four current panels explicitly
+  (Standard / Standard+Docs / Specialized (No RAG) / Specialized (RAG)) with Standard and
+  Specialized (RAG) as the required minimum.
+- Rationale (model floor): the project's A100 profile now defaults to Qwen3.5-0.8B (`config.py`)
+  for faster, cheaper iteration, while the T4 fallback profile still uses the larger Qwen3-4B
+  family — a deliberately inverted "bigger GPU, smaller model" arrangement that the prior 1B floor
+  and the A100-implies-large-model framing did not accommodate. This amendment makes that
+  arrangement explicitly compliant instead of leaving it unreconciled against the letter of the
+  constitution.
+- Rationale (panel count): `03_compare_serve.ipynb` shipped a fourth panel, "Specialized (No RAG)"
+  (adapter alone, no retrieval), to isolate fine-tuning's standalone contribution from RAG's — the
+  constitution's hard-coded "three panels" language was already out of sync with `main` and would
+  have failed a literal compliance read of §IV. Generalizing to an N-panel rule (with a named
+  minimum) lets the panel count evolve without triggering an amendment every time.
+- Version bump type: MINOR (new approved candidate, expanded floor, generalized/clarified guidance;
+  no principle removed or redefined).
 
 ### v1.2.0 — 2026-07-20
 
@@ -123,15 +169,16 @@ one-time demo. Pinned dependencies and Drive persistence guarantee long-term rep
 
 The comparison between the baseline and enhanced model variants MUST be scientifically honest.
 
-- Both variants MUST share: the same base model, the same quantization level, the same generation
+- All variants MUST share: the same base model, the same quantization level, the same generation
   parameters (temperature, max tokens, top-p), and the same system prompt scaffolding.
 - The only permitted differences between variants are (a) the LoRA adapter and (b) the retrieved
   context.
-- Identical questions MUST be sent to both variants simultaneously.
-- When the codebase is split (see §I), all three inference panels (Standard / Standard+Docs /
-  Specialized) MUST live in the single compare/serve notebook, and every shared parameter (base
-  model, quantization, generation params, system prompt) MUST be imported from the shared
-  configuration module — never re-declared per notebook — so the invariant cannot drift across files.
+- Identical questions MUST be sent to all variants simultaneously.
+- When the codebase is split (see §I), all inference panels (Standard / Standard+Docs / Specialized
+  (No RAG) / Specialized (RAG)) MUST live in the single compare/serve notebook, and every shared
+  parameter (base model, quantization, generation params, system prompt) MUST be imported from the
+  shared configuration module — never re-declared per notebook — so the invariant cannot drift
+  across files.
 
 **Rationale**: Any variable beyond the intended one (adapter / retrieved context) would confound
 the comparison and undermine the POC's core purpose: demonstrating the value of fine-tuning + RAG.
@@ -164,19 +211,25 @@ MUST be exactly the following phase notebooks, each runnable top-to-bottom in it
 - Each notebook pins only its own minimal dependency subset (see §III). Isolating the build phases
   is an explicit benefit: a smaller per-notebook surface removes cross-stack version conflicts.
 - The compare/serve notebook is the sole place the full stack must coexist; its pins MUST still
-  satisfy §IV Fair Comparison for all three panels.
+  satisfy §IV Fair Comparison for every panel it serves.
 
 ### Model Requirements
 
-- Default base model size: **1B–4B parameters** (guarantees T4 compatibility and fast iteration).
+- Default base model size: **0.5B–4B parameters** (guarantees T4 compatibility and fast iteration).
 - With an A100 runtime, models up to **10B parameters** (e.g., Qwen3.5-9B, Qwen3-8B) are
   approved as the primary target — permitted only after the full pipeline works end-to-end with
   the small default (see §Build Order).
+- A larger GPU runtime does not obligate a larger model: any approved candidate below MAY be
+  assigned to any GPU profile in `config.py`. Running a lightweight candidate (e.g. Qwen3.5-0.8B) on
+  an A100 for faster/cheaper iteration is permitted even if the T4 fallback profile is configured
+  with a larger model.
 - Models MUST be open-weight, instruction-tuned, and available on Hugging Face without payment.
-- **Approved T4-safe candidates (1–4B)**: Qwen3-4B-Instruct-2507 *(preferred)*, Llama 3.2 3B
-  Instruct, Qwen2.5 3B Instruct, Gemma 3 4B, Phi-3.5-mini. Substitutions allowed only if all
-  constraints in this section are satisfied.
-- **Approved A100 candidates (up to 10B)**: Qwen3.5-9B *(preferred)*, Qwen3-8B.
+- **Approved T4-safe / lightweight candidates (0.5–4B)**: Qwen3.5-0.8B *(lightest; fast-iteration
+  default)*, Qwen3-4B-Instruct-2507 *(preferred mid-size)*, Llama 3.2 3B Instruct, Qwen2.5 3B
+  Instruct, Gemma 3 4B, Phi-3.5-mini. Substitutions allowed only if all constraints in this section
+  are satisfied.
+- **Approved A100 candidates (up to 10B)**: Qwen3.5-9B *(preferred for maximum domain quality)*,
+  Qwen3-8B.
 - Quantization: 4-bit QLoRA / bitsandbytes NF4 for both training and inference.
 
 ### Fine-Tuning Stack
@@ -203,9 +256,12 @@ MUST be exactly the following phase notebooks, each runnable top-to-bottom in it
 ### Interface
 
 - Framework: **Gradio** (runs in Colab; free public share link).
-- Layout: one question input; side-by-side output panels (baseline vs. enhanced); single submit
-  action fanning out to both variants.
-- An optional third panel (base + RAG, no fine-tune) is encouraged for improvement attribution.
+- Layout: one question input; side-by-side output panels for all configured variants; single submit
+  action fanning out to every panel.
+- At minimum, Standard (baseline) and Specialized (RAG) (fully enhanced) MUST both be shown.
+  Standard+Docs (RAG only, no adapter) and Specialized (No RAG) (adapter only, no RAG) are encouraged
+  as additional panels — each isolates one lever's contribution and sharpens improvement attribution
+  (see §IV).
 - No authentication, no persistence of user queries, no analytics. The share link is ephemeral.
 
 ### Prohibited
@@ -271,4 +327,4 @@ Any deviation from this order MUST be recorded in the Deviations section of the 
 - **Runtime guidance**: See `.specify/templates/` for plan, spec, and tasks templates that encode
   this constitution's constraints as actionable gates.
 
-**Version**: 1.2.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-07-20
+**Version**: 1.3.0 | **Ratified**: 2026-07-20 | **Last Amended**: 2026-07-21
